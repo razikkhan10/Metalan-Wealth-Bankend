@@ -1,0 +1,6 @@
+# Files and folders that should not be committed to Git.
+node_modules
+dist
+.env
+.DS_Store
+.vscode

@@ -1,0 +1,283 @@
+{
+  "info": {
+    "name": "Metalan Wealth API",
+    "description": "Registration is done here via Postman (no register form in the frontend) — everything else the frontend already calls for you, kept here for manual testing/debugging.\n\nHow to use:\n1. Set the `baseUrl` variable below if your backend isn't on http://localhost:5000/api.\n2. Run \"Auth > Register\" first — copy the returned username + password from the response (shown ONCE) and give them to the user.\n3. Run \"Auth > Login\" with those credentials — the token is saved automatically to the `token` collection variable and reused by every protected request below.\n4. Run \"Admin > Seed Admin\" only once (see Backend/src/seed/adminSeed.js) if you need an admin account for Admin > Get User By ID.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000/api" },
+    { "key": "token", "value": "" },
+    { "key": "adminToken", "value": "" },
+    { "key": "userId", "value": "" },
+    { "key": "propertyId", "value": "" },
+    { "key": "fundId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register (create a user)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Rahul Sharma\",\n  \"email\": \"rahul.sharma@example.com\",\n  \"gender\": \"Male\",\n  \"address\": \"221B Baker Street\",\n  \"country\": \"India\",\n  \"city\": \"Indore\",\n  \"state\": \"Madhya Pradesh\",\n  \"dob\": \"1995-06-14\",\n  \"phone\": \"9876543210\",\n  \"amountDeposited\": 0\n}"
+            },
+            "description": "Server generates the username + password (from fullName) and returns them ONCE in the response — they are NOT emailed or shown again, so copy them from here and hand them to the user. See Backend/src/utils/generateCredentials.js.\n\nNotes on fields:\n- gender must be exactly \"Male\", \"Female\" or \"Other\"\n- dob must be YYYY-MM-DD\n- phone must be 7–20 characters\n- amountDeposited is optional, defaults to 0"
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data && data.data && data.data.token) {",
+                  "  pm.collectionVariables.set('token', data.data.token);",
+                  "  console.log('Saved token to {{token}}');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"PASTE_USERNAME_FROM_REGISTER_RESPONSE\",\n  \"password\": \"PASTE_PASSWORD_FROM_REGISTER_RESPONSE\"\n}"
+            },
+            "description": "Saves the returned token into the {{token}} collection variable automatically, so every protected request below just works."
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Profile (protected)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/auth/me", "host": ["{{baseUrl}}"], "path": ["auth", "me"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Change Password (protected)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/auth/change-password", "host": ["{{baseUrl}}"], "path": ["auth", "change-password"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"PASTE_CURRENT_PASSWORD\",\n  \"newPassword\": \"NewPass123\",\n  \"confirmPassword\": \"NewPass123\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Logout (protected)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/auth/logout", "host": ["{{baseUrl}}"], "path": ["auth", "logout"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Admin Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data && data.data && data.data.token) {",
+                  "  pm.collectionVariables.set('adminToken', data.data.token);",
+                  "  console.log('Saved token to {{adminToken}}');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/auth/admin-login", "host": ["{{baseUrl}}"], "path": ["auth", "admin-login"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"PASTE_ADMIN_EMAIL\",\n  \"password\": \"PASTE_ADMIN_PASSWORD\"\n}"
+            },
+            "description": "Run `node src/seed/adminSeed.js` in the Backend project once to create the seeded admin account, then log in with those credentials here."
+          },
+          "response": []
+        },
+        {
+          "name": "Get User By userId (admin)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": { "raw": "{{baseUrl}}/admin/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["admin", "users", "{{userId}}"] },
+            "description": "{{userId}} is the short id returned in the register response (e.g. \"0001\"), not the Mongo _id."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard Summary (protected)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/dashboard", "host": ["{{baseUrl}}"], "path": ["dashboard"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Wallet",
+      "item": [
+        {
+          "name": "Get My Wallet (protected)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/wallet/me", "host": ["{{baseUrl}}"], "path": ["wallet", "me"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Deposit (protected)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/wallet/deposit", "host": ["{{baseUrl}}"], "path": ["wallet", "deposit"] },
+            "body": { "mode": "raw", "raw": "{\n  \"amount\": 1100\n}" },
+            "description": "Rupee amount — converted to FAIX tokens at the fixed 1 FAIX = ₹11 rate."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Properties",
+      "item": [
+        {
+          "name": "List Properties (protected)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/properties", "host": ["{{baseUrl}}"], "path": ["properties"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Property By Id (protected)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/properties/{{propertyId}}", "host": ["{{baseUrl}}"], "path": ["properties", "{{propertyId}}"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Purchase Property Tokens (protected)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/properties/purchase", "host": ["{{baseUrl}}"], "path": ["properties", "purchase"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"propertyName\": \"London Penthouse\",\n  \"purchasedFaixToken\": 10\n}"
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Funds",
+      "item": [
+        {
+          "name": "List Funds (protected)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/funds", "host": ["{{baseUrl}}"], "path": ["funds"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Invest In Fund (protected)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/funds/invest", "host": ["{{baseUrl}}"], "path": ["funds", "invest"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fundName\": \"Metalan Growth Fund\",\n  \"investmentAmount\": 1100,\n  \"faixTokenUsed\": 100\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Fund Investments (protected)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/funds/investments", "host": ["{{baseUrl}}"], "path": ["funds", "investments"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Transactions",
+      "item": [
+        {
+          "name": "List My Transactions (protected)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/transactions?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["transactions"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
